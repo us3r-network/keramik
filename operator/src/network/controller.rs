@@ -538,7 +538,7 @@ async fn apply_ceramic<'a>(
         ns,
         orefs.clone(),
         CERAMIC_POSTGRES_APP,
-        ceramic::postgres_stateful_set_spec(ns, bundle),
+        ceramic::postgres_stateful_set_spec(&bundle),
     )
     .await?;
     apply_service(

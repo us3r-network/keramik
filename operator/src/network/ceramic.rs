@@ -934,8 +934,8 @@ pub fn stateful_set_spec(ns: &str, bundle: &CeramicBundle<'_>) -> StatefulSetSpe
     }
 }
 
-pub fn postgres_stateful_set_spec(ns: &str, bundle: &CeramicBundle<'_>) -> StatefulSetSpec {
-    let postgresConfig = &bundle.config.postgres;
+pub fn postgres_stateful_set_spec(bundle: &CeramicBundle<'_>) -> StatefulSetSpec {
+    let postgres_config = &bundle.config.postgres;
     StatefulSetSpec {
         replicas: Some(1),
         selector: LabelSelector {
@@ -953,17 +953,17 @@ pub fn postgres_stateful_set_spec(ns: &str, bundle: &CeramicBundle<'_>) -> State
                     env: Some(vec![
                         EnvVar {
                             name: "POSTGRES_DB".to_owned(),
-                            value: postgresConfig.db_name.clone(),
+                            value: postgres_config.db_name.clone(),
                             ..Default::default()
                         },
                         EnvVar {
                             name: "POSTGRES_PASSWORD".to_owned(),
-                            value: postgresConfig.password.clone(),
+                            value: postgres_config.password.clone(),
                             ..Default::default()
                         },
                         EnvVar {
                             name: "POSTGRES_USER".to_owned(),
-                            value: postgresConfig.user_name.clone(),
+                            value: postgres_config.user_name.clone(),
                             ..Default::default()
                         },
                     ]),
