@@ -47,6 +47,8 @@ pub struct NetworkSpec {
     /// The number of seconds this network should live.
     /// If unset the network lives forever.
     pub ttl_seconds: Option<u64>,
+    /// Namespce for ceramic network
+    pub namespace: Option<String>,
 }
 
 /// Current status of the network.
@@ -96,6 +98,20 @@ pub struct CeramicSpec {
     pub ipfs: Option<IpfsSpec>,
     /// Resource limits for ceramic nodes, applies to both requests and limits.
     pub resource_limits: Option<ResourceLimitsSpec>,
+    /// Pg configs for ceramic
+    pub ceramic_postgres: Option<CeramicPostgresSpec>,
+}
+
+/// Describes how the PG db for ceramic node should behave.
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CeramicPostgresSpec {
+    /// Name of postgres db to use
+    pub db_name: Option<String>,
+    /// Name of postgres user to use
+    pub user_name: Option<String>,
+    /// Password for the postgres user
+    pub password: Option<String>,
 }
 
 /// Describes how the IPFS node for a peer should behave.

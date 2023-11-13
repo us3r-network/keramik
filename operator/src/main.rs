@@ -36,7 +36,7 @@ async fn main() -> Result<()> {
         Command::Daemon => {
             tokio::join!(
                 keramik_operator::network::run(),
-                keramik_operator::simulation::run()
+                // keramik_operator::simulation::run()
             );
         }
     };

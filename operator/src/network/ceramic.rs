@@ -6,7 +6,7 @@ use k8s_openapi::{
         core::v1::{
             ConfigMapVolumeSource, Container, ContainerPort, EmptyDirVolumeSource, EnvVar,
             EnvVarSource, HTTPGetAction, PersistentVolumeClaim, PersistentVolumeClaimSpec,
-            PersistentVolumeClaimVolumeSource, PodSpec, PodTemplateSpec, Probe,
+            PersistentVolumeClaimVolumeSource, PodSecurityContext, PodSpec, PodTemplateSpec, Probe,
             ResourceRequirements, SecretKeySelector, ServicePort, ServiceSpec, Volume, VolumeMount,
         },
     },
@@ -28,6 +28,8 @@ use crate::network::{
 };
 
 use crate::network::controller::{CERAMIC_SERVICE_API_PORT, CERAMIC_SERVICE_IPFS_PORT};
+
+use super::controller::{CERAMIC_POSTGRES_APP, CERAMIC_POSTGRES_SERVICE_NAME};
 
 const IPFS_CONTAINER_NAME: &str = "ipfs";
 const IPFS_DATA_PV_CLAIM: &str = "ipfs-data";
@@ -90,7 +92,7 @@ r#"{
         "local-directory": "${CERAMIC_STATE_STORE_PATH}"
     },
     "indexing": {
-        "db": "sqlite://${CERAMIC_SQLITE_PATH}",
+        "db": "postgres://${CERAMIC_PG_USERNAME}:${CERAMIC_PG_PASSWORD}@${CERAMIC_PG_HOST}:5432/${CERAMIC_PG_DBNAME}",
         "allow-queries-before-historical-sync": true,
         "disable-composedb": false,
         "enable-historical-sync": false
@@ -138,6 +140,16 @@ pub struct CeramicConfig {
     pub image_pull_policy: String,
     pub ipfs: IpfsConfig,
     pub resource_limits: ResourceLimitsConfig,
+    pub postgres: CeramicPostgres,
+}
+
+pub struct CeramicPostgres {
+    /// Name of postgres db to use
+    pub db_name: Option<String>,
+    /// Name of postgres user to use
+    pub user_name: Option<String>,
+    /// Password for the postgres user
+    pub password: Option<String>,
 }
 
 /// Bundles all relevant config for a ceramic spec.
@@ -350,6 +362,11 @@ impl Default for CeramicConfig {
                 memory: Quantity("1Gi".to_owned()),
                 storage: Quantity("1Gi".to_owned()),
             },
+            postgres: CeramicPostgres {
+                db_name: None,
+                user_name: None,
+                password: None,
+            },
         }
     }
 }
@@ -379,6 +396,11 @@ impl From<CeramicSpec> for CeramicConfig {
                 value.resource_limits,
                 default.resource_limits,
             ),
+            postgres: CeramicPostgres {
+                db_name: value.ceramic_postgres.clone().unwrap().db_name,
+                user_name: value.ceramic_postgres.clone().unwrap().user_name,
+                password: value.ceramic_postgres.clone().unwrap().password,
+            },
         }
     }
 }
@@ -659,6 +681,26 @@ pub fn stateful_set_spec(ns: &str, bundle: &CeramicBundle<'_>) -> StatefulSetSpe
             value: Some("2".to_owned()),
             ..Default::default()
         },
+        EnvVar {
+            name: "CERAMIC_PG_USERNAME".to_owned(),
+            value: Some(bundle.config.postgres.db_name.clone().unwrap()),
+            ..Default::default()
+        },
+        EnvVar {
+            name: "CERAMIC_PG_PASSWORD".to_owned(),
+            value: Some(bundle.config.postgres.password.clone().unwrap()),
+            ..Default::default()
+        },
+        EnvVar {
+            name: "CERAMIC_PG_HOST".to_owned(),
+            value: Some(CERAMIC_POSTGRES_SERVICE_NAME.to_owned()),
+            ..Default::default()
+        },
+        EnvVar {
+            name: "CERAMIC_PG_DBNAME".to_owned(),
+            value: Some(bundle.config.postgres.db_name.clone().unwrap()),
+            ..Default::default()
+        },
     ];
 
     let mut init_env = vec![EnvVar {
@@ -888,6 +930,127 @@ pub fn stateful_set_spec(ns: &str, bundle: &CeramicBundle<'_>) -> StatefulSetSpe
                 ..Default::default()
             },
         ]),
+        ..Default::default()
+    }
+}
+
+pub fn postgres_stateful_set_spec(ns: &str, bundle: &CeramicBundle<'_>) -> StatefulSetSpec {
+    let postgresConfig = &bundle.config.postgres;
+    StatefulSetSpec {
+        replicas: Some(1),
+        selector: LabelSelector {
+            match_labels: selector_labels(CERAMIC_POSTGRES_APP),
+            ..Default::default()
+        },
+        service_name: CERAMIC_POSTGRES_SERVICE_NAME.to_owned(),
+        template: PodTemplateSpec {
+            metadata: Some(ObjectMeta {
+                labels: selector_labels(CERAMIC_POSTGRES_APP),
+                ..Default::default()
+            }),
+            spec: Some(PodSpec {
+                containers: vec![Container {
+                    env: Some(vec![
+                        EnvVar {
+                            name: "POSTGRES_DB".to_owned(),
+                            value: postgresConfig.db_name.clone(),
+                            ..Default::default()
+                        },
+                        EnvVar {
+                            name: "POSTGRES_PASSWORD".to_owned(),
+                            value: postgresConfig.password.clone(),
+                            ..Default::default()
+                        },
+                        EnvVar {
+                            name: "POSTGRES_USER".to_owned(),
+                            value: postgresConfig.user_name.clone(),
+                            ..Default::default()
+                        },
+                    ]),
+                    image: Some("postgres:15-alpine".to_owned()),
+                    image_pull_policy: Some("IfNotPresent".to_owned()),
+                    name: "postgres".to_owned(),
+                    ports: Some(vec![ContainerPort {
+                        container_port: 5432,
+                        name: Some("postgres".to_owned()),
+                        ..Default::default()
+                    }]),
+                    resources: Some(ResourceRequirements {
+                        limits: Some(
+                            (ResourceLimitsConfig {
+                                cpu: Quantity("1".to_owned()),
+                                memory: Quantity("2Gi".to_owned()),
+                                storage: Quantity("1Gi".to_owned()),
+                            })
+                            .into(),
+                        ),
+                        requests: Some(
+                            (ResourceLimitsConfig {
+                                cpu: Quantity("1".to_owned()),
+                                memory: Quantity("512Mi".to_owned()),
+                                storage: Quantity("2Gi".to_owned()),
+                            })
+                            .into(),
+                        ),
+                        ..Default::default()
+                    }),
+                    volume_mounts: Some(vec![VolumeMount {
+                        mount_path: "/var/lib/postgresql".to_owned(),
+                        name: "postgres-data".to_owned(),
+                        sub_path: Some("ceramic_data".to_owned()),
+                        ..Default::default()
+                    }]),
+                    ..Default::default()
+                }],
+                security_context: Some(PodSecurityContext {
+                    fs_group: Some(70),
+                    run_as_group: Some(70),
+                    run_as_user: Some(70),
+                    ..Default::default()
+                }),
+                volumes: Some(vec![Volume {
+                    name: "postgres-data".to_owned(),
+                    persistent_volume_claim: Some(PersistentVolumeClaimVolumeSource {
+                        claim_name: "postgres-data".to_owned(),
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            }),
+        },
+        volume_claim_templates: Some(vec![PersistentVolumeClaim {
+            metadata: ObjectMeta {
+                name: Some("postgres-data".to_owned()),
+                ..Default::default()
+            },
+            spec: Some(PersistentVolumeClaimSpec {
+                access_modes: Some(vec!["ReadWriteOnce".to_owned()]),
+                resources: Some(ResourceRequirements {
+                    requests: Some(BTreeMap::from_iter(vec![(
+                        "storage".to_owned(),
+                        Quantity("10Gi".to_owned()),
+                    )])),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }),
+            ..Default::default()
+        }]),
+        ..Default::default()
+    }
+}
+
+pub fn postgres_service_spec() -> ServiceSpec {
+    ServiceSpec {
+        ports: Some(vec![ServicePort {
+            name: Some("postgres".to_owned()),
+            port: 5432,
+            target_port: Some(IntOrString::Int(5432)),
+            ..Default::default()
+        }]),
+        selector: selector_labels(CERAMIC_POSTGRES_APP),
+        type_: Some("ClusterIP".to_owned()),
         ..Default::default()
     }
 }

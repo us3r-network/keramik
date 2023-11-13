@@ -79,6 +79,8 @@ pub const CAS_IPFS_APP: &str = "cas-ipfs";
 pub const GANACHE_APP: &str = "ganache";
 pub const LOCALSTACK_APP: &str = "localstack";
 pub const CERAMIC_LOCAL_NETWORK_TYPE: &str = "local";
+pub const CERAMIC_POSTGRES_SERVICE_NAME: &str = "ceramic-postgres";
+pub const CERAMIC_POSTGRES_APP: &str = "ceramic-postgres";
 
 pub const BOOTSTRAP_JOB_NAME: &str = "bootstrap";
 
@@ -208,7 +210,8 @@ async fn reconcile(
         _ => None,
     };
 
-    let ns = apply_network_namespace(cx.clone(), network.clone()).await?;
+    let namespace = network.meta().namespace.clone();
+    let ns = apply_network_namespace(cx.clone(), network.clone(), namespace.unwrap()).await?;
 
     let net_config: NetworkConfig = spec.into();
 
@@ -313,15 +316,15 @@ async fn reconcile(
 async fn apply_network_namespace(
     cx: Arc<Context<impl IpfsRpcClient, impl RngCore, impl Clock>>,
     network: Arc<Network>,
+    namespace: String,
 ) -> Result<String, kube::error::Error> {
-    let serverside = PatchParams::apply(CONTROLLER_NAME);
+    let serverside: PatchParams = PatchParams::apply(CONTROLLER_NAME);
     let namespaces: Api<Namespace> = Api::all(cx.k_client.clone());
 
-    let ns = "keramik-".to_owned() + &network.name_any();
     let oref: Option<Vec<_>> = network.controller_owner_ref(&()).map(|oref| vec![oref]);
     let namespace_data: Namespace = Namespace {
         metadata: ObjectMeta {
-            name: Some(ns.clone()),
+            name: Some(namespace.clone()),
             owner_references: oref,
             labels: managed_labels(),
             ..ObjectMeta::default()
@@ -329,10 +332,10 @@ async fn apply_network_namespace(
         ..Default::default()
     };
     namespaces
-        .patch(&ns, &serverside, &Patch::Apply(namespace_data))
+        .patch(&namespace, &serverside, &Patch::Apply(namespace_data))
         .await?;
 
-    Ok(ns)
+    Ok(namespace)
 }
 
 async fn delete_network(
@@ -529,6 +532,23 @@ async fn apply_ceramic<'a>(
     for (name, data) in config_maps {
         apply_config_map(cx.clone(), ns, orefs.clone(), &name, data).await?;
     }
+
+    apply_stateful_set(
+        cx.clone(),
+        ns,
+        orefs.clone(),
+        CERAMIC_POSTGRES_APP,
+        ceramic::postgres_stateful_set_spec(ns, bundle),
+    )
+    .await?;
+    apply_service(
+        cx.clone(),
+        ns,
+        orefs.clone(),
+        CERAMIC_POSTGRES_SERVICE_NAME,
+        ceramic::postgres_service_spec(),
+    )
+    .await?;
 
     apply_ceramic_service(cx.clone(), ns, network.clone(), &bundle.info).await?;
     apply_ceramic_stateful_set(cx.clone(), ns, network.clone(), bundle).await?;
