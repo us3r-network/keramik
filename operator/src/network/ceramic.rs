@@ -127,8 +127,9 @@ pub fn service_spec() -> ServiceSpec {
             },
         ]),
         selector: selector_labels(CERAMIC_APP),
-        cluster_ip: Some("None".to_owned()),
-        type_: Some("ClusterIP".to_owned()),
+        /// disable cluster ip so that we can use a load balancer
+        // cluster_ip: Some("None".to_owned()),
+        type_: Some("LoadBalancer".to_owned()),
         ..Default::default()
     }
 }
