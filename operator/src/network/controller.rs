@@ -211,7 +211,7 @@ async fn reconcile(
     };
 
     let namespace = network.meta().namespace.clone();
-    let ns = apply_network_namespace(cx.clone(), network.clone(), namespace.unwrap()).await?;
+    let ns = apply_network_namespace(cx.clone(), network.clone(), namespace.unwrap_or("default".to_owned())).await?;
 
     let net_config: NetworkConfig = spec.into();
 
