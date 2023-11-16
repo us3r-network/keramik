@@ -5,7 +5,7 @@ resources:
   - ./manifests/operator.yaml
 
 images:
-  - name: keramik/operator
+  - name: asia-east2-docker.pkg.dev/us3r-network/ceramic-operator/keramik-operator
     newTag: dev
 
     # If you always want to use the latest committed version of Keramic, uncomment these lines
