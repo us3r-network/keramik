@@ -18,7 +18,9 @@ use crate::{
 impl Network {
     /// A normal test network
     pub fn test() -> Self {
-        Network::new("test", NetworkSpec::default())
+        let mut network = NetworkSpec::default();
+        network.namespace = Some("keramik-test".to_owned());
+        Network::new("test", network)
     }
     /// Modify a network to have an expected spec
     pub fn with_spec(self, spec: NetworkSpec) -> Self {
