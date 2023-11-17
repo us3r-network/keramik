@@ -102,7 +102,7 @@ spec:
       containers:
       - name: keramik-operator
         image: "asia-east2-docker.pkg.dev/us3r-network/ceramic-operator/keramik-operator:dev"
-        imagePullPolicy: IfNotPresent # Should be IfNotPresent when using imageTag: dev, but Always if using imageTag: latest
+        imagePullPolicy: Always # Should be IfNotPresent when using imageTag: dev, but Always if using imageTag: latest
         command:
           - "/usr/bin/keramik-operator"
           - "daemon"
@@ -119,12 +119,12 @@ spec:
         - name: http
           containerPort: 8080
           protocol: TCP
-        env:
-        # We are pointing to tempo or grafana tracing agent's otlp grpc receiver port
-        - name: OPERATOR_OTLP_ENDPOINT
-          value: "https://otel:4317"
-        - name: RUST_LOG
-          value: "info,kube=debug,keramik_operator=debug"
+        # env:
+        # # We are pointing to tempo or grafana tracing agent's otlp grpc receiver port
+        # - name: OPERATOR_OTLP_ENDPOINT
+        #   value: "https://otel:4317"
+        # - name: RUST_LOG
+        #   value: "info,kube=debug,keramik_operator=debug"
         #readinessProbe:
         #  httpGet:
         #    path: /health

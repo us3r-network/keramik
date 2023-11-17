@@ -8,9 +8,9 @@ metadata:
 spec:
   replicas: 1
   namespace: ns-1
-  network_type: testnet-clay # mainnet
+  networkType: testnet-clay # mainnet
   ceramic:
-    - ceramic_postgres:
-      db_name: db_ceramic
-      user_name: user_ceramic
-      password: pw_123456_ceramic
+    - ceramicPostgres:
+        dbName: db_ceramic
+        userName: user_ceramic
+        password: pw_123456_ceramic

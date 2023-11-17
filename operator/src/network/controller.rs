@@ -210,7 +210,7 @@ async fn reconcile(
         _ => None,
     };
 
-    let namespace = network.meta().namespace.clone();
+    let namespace = spec.namespace.clone();
     let ns = apply_network_namespace(cx.clone(), network.clone(), namespace.unwrap_or("keramik-test".to_owned())).await?;
 
     let net_config: NetworkConfig = spec.into();
