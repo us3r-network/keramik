@@ -101,7 +101,7 @@ spec:
         {}
       containers:
       - name: keramik-operator
-        image: "keramik/operator"
+        image: "asia-east2-docker.pkg.dev/us3r-network/ceramic-operator/keramik-operator:dev"
         imagePullPolicy: IfNotPresent # Should be IfNotPresent when using imageTag: dev, but Always if using imageTag: latest
         command:
           - "/usr/bin/keramik-operator"

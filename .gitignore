@@ -2,7 +2,7 @@ target/
 *.parquet
 .vscode
 /analyze
-*.yaml
+.yaml
 *.yml
 .env*
 /book

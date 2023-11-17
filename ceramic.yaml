@@ -1,0 +1,16 @@
+# ceramic.yaml
+# 按照network spec中的定义配置
+---
+apiVersion: "keramik.3box.io/v1alpha1"
+kind: Network
+metadata:
+  name: ceramic
+spec:
+  replicas: 1
+  namespace: ns-1
+  network_type: testnet-clay # mainnet
+  ceramic:
+    - ceramic_postgres:
+      db_name: db_ceramic
+      user_name: user_ceramic
+      password: pw_123456_ceramic
