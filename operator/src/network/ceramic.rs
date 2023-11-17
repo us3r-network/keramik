@@ -681,7 +681,7 @@ pub fn stateful_set_spec(ns: &str, bundle: &CeramicBundle<'_>) -> StatefulSetSpe
         },
         EnvVar {
             name: "CERAMIC_PG_USERNAME".to_owned(),
-            value: Some(bundle.config.postgres.db_name.clone().unwrap()),
+            value: Some(bundle.config.postgres.user_name.clone().unwrap()),
             ..Default::default()
         },
         EnvVar {

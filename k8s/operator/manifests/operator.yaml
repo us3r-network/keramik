@@ -119,12 +119,12 @@ spec:
         - name: http
           containerPort: 8080
           protocol: TCP
-        # env:
-        # # We are pointing to tempo or grafana tracing agent's otlp grpc receiver port
-        # - name: OPERATOR_OTLP_ENDPOINT
-        #   value: "https://otel:4317"
-        # - name: RUST_LOG
-        #   value: "info,kube=debug,keramik_operator=debug"
+        env:
+        # We are pointing to tempo or grafana tracing agent's otlp grpc receiver port
+        - name: OPERATOR_OTLP_ENDPOINT
+          value: "https://otel:4317"
+        - name: RUST_LOG
+          value: "info,kube=debug,keramik_operator=debug"
         #readinessProbe:
         #  httpGet:
         #    path: /health
