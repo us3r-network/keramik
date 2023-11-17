@@ -55,9 +55,7 @@ CERAMIC_ADMIN_DID=$CERAMIC_ADMIN_DID envsubst < /ceramic-init/daemon-config.json
 ("daemon-config.json".to_owned(),
 r#"{
     "anchor": {
-        "auth-method": "did",
-        "anchor-service-url": "${CAS_API_URL}",
-        "ethereum-rpc-url": "${ETH_RPC_URL}"
+        "auth-method": "did"
     },
     "http-api": {
         "cors-allowed-origins": [
@@ -81,8 +79,7 @@ r#"{
         "prometheus-exporter-port": 9464
     },
     "network": {
-        "name": "${CERAMIC_NETWORK}",
-        "pubsub-topic": "${CERAMIC_NETWORK_TOPIC}"
+        "name": "${CERAMIC_NETWORK}"
     },
     "node": {
         "privateSeedUrl": "inplace:ed25519#${CERAMIC_ADMIN_PRIVATE_KEY}"
