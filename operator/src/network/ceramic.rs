@@ -92,7 +92,7 @@ r#"{
         "db": "postgres://${CERAMIC_PG_USERNAME}:${CERAMIC_PG_PASSWORD}@${CERAMIC_PG_HOST}:5432/${CERAMIC_PG_DBNAME}",
         "allow-queries-before-historical-sync": true,
         "disable-composedb": false,
-        "enable-historical-sync": false
+        "enable-historical-sync": true
     }
 }"#.to_owned()),
 ]));
@@ -124,8 +124,6 @@ pub fn service_spec() -> ServiceSpec {
             },
         ]),
         selector: selector_labels(CERAMIC_APP),
-        /// disable cluster ip so that we can use a load balancer
-        // cluster_ip: Some("None".to_owned()),
         type_: Some("LoadBalancer".to_owned()),
         ..Default::default()
     }
@@ -901,7 +899,7 @@ pub fn stateful_set_spec(ns: &str, bundle: &CeramicBundle<'_>) -> StatefulSetSpe
                     resources: Some(ResourceRequirements {
                         requests: Some(BTreeMap::from_iter(vec![(
                             "storage".to_owned(),
-                            Quantity("10Gi".to_owned()),
+                            Quantity("2Gi".to_owned()),
                         )])),
                         ..Default::default()
                     }),
@@ -919,7 +917,7 @@ pub fn stateful_set_spec(ns: &str, bundle: &CeramicBundle<'_>) -> StatefulSetSpe
                     resources: Some(ResourceRequirements {
                         requests: Some(BTreeMap::from_iter(vec![(
                             "storage".to_owned(),
-                            Quantity("10Gi".to_owned()),
+                            Quantity("2Gi".to_owned()),
                         )])),
                         ..Default::default()
                     }),
@@ -977,7 +975,7 @@ pub fn postgres_stateful_set_spec(bundle: &CeramicBundle<'_>) -> StatefulSetSpec
                         limits: Some(
                             (ResourceLimitsConfig {
                                 cpu: Quantity("1".to_owned()),
-                                memory: Quantity("2Gi".to_owned()),
+                                memory: Quantity("1Gi".to_owned()),
                                 storage: Quantity("1Gi".to_owned()),
                             })
                             .into(),
@@ -986,7 +984,7 @@ pub fn postgres_stateful_set_spec(bundle: &CeramicBundle<'_>) -> StatefulSetSpec
                             (ResourceLimitsConfig {
                                 cpu: Quantity("1".to_owned()),
                                 memory: Quantity("512Mi".to_owned()),
-                                storage: Quantity("2Gi".to_owned()),
+                                storage: Quantity("1Gi".to_owned()),
                             })
                             .into(),
                         ),
@@ -1027,7 +1025,7 @@ pub fn postgres_stateful_set_spec(bundle: &CeramicBundle<'_>) -> StatefulSetSpec
                 resources: Some(ResourceRequirements {
                     requests: Some(BTreeMap::from_iter(vec![(
                         "storage".to_owned(),
-                        Quantity("10Gi".to_owned()),
+                        Quantity("2Gi".to_owned()),
                     )])),
                     ..Default::default()
                 }),

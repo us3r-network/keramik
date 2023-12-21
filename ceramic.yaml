@@ -7,10 +7,12 @@ metadata:
   name: ceramic
 spec:
   replicas: 1
-  namespace: ns-1
+  namespace: ns-ceramic-2
   networkType: testnet-clay # mainnet
   ceramic:
     - ceramicPostgres:
         dbName: db_ceramic
         userName: user_ceramic
         password: pw_123456_ceramic
+      ipfs: 
+        go: {}
