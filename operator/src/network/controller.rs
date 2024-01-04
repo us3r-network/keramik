@@ -84,6 +84,10 @@ pub const CERAMIC_POSTGRES_APP: &str = "ceramic-postgres";
 
 pub const BOOTSTRAP_JOB_NAME: &str = "bootstrap";
 
+pub const DB_TYPE_SQLITE: &str = "sqlite";
+pub const DB_TYPE_POSTGRES: &str = "postgres";
+
+
 /// Handle errors during reconciliation.
 fn on_error(
     _network: Arc<Network>,
@@ -211,7 +215,12 @@ async fn reconcile(
     };
 
     let namespace = spec.namespace.clone();
-    let ns = apply_network_namespace(cx.clone(), network.clone(), namespace.unwrap_or("keramik-test".to_owned())).await?;
+    let ns = apply_network_namespace(
+        cx.clone(),
+        network.clone(),
+        namespace.unwrap_or("keramik-test".to_owned()),
+    )
+    .await?;
 
     let net_config: NetworkConfig = spec.into();
 
@@ -533,23 +542,24 @@ async fn apply_ceramic<'a>(
         apply_config_map(cx.clone(), ns, orefs.clone(), &name, data).await?;
     }
 
-    apply_stateful_set(
-        cx.clone(),
-        ns,
-        orefs.clone(),
-        CERAMIC_POSTGRES_APP,
-        ceramic::postgres_stateful_set_spec(bundle),
-    )
-    .await?;
-    apply_service(
-        cx.clone(),
-        ns,
-        orefs.clone(),
-        CERAMIC_POSTGRES_SERVICE_NAME,
-        ceramic::postgres_service_spec(),
-    )
-    .await?;
-
+    if bundle.config.db_type.eq(DB_TYPE_POSTGRES) {
+        apply_stateful_set(
+            cx.clone(),
+            ns,
+            orefs.clone(),
+            CERAMIC_POSTGRES_APP,
+            ceramic::postgres_stateful_set_spec(bundle),
+        )
+        .await?;
+        apply_service(
+            cx.clone(),
+            ns,
+            orefs.clone(),
+            CERAMIC_POSTGRES_SERVICE_NAME,
+            ceramic::postgres_service_spec(),
+        )
+        .await?;
+    }
     apply_ceramic_service(cx.clone(), ns, network.clone(), &bundle.info).await?;
     apply_ceramic_stateful_set(cx.clone(), ns, network.clone(), bundle).await?;
 
