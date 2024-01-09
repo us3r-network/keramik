@@ -102,13 +102,8 @@ pub struct CeramicSpec {
     pub db_type: Option<String>,
     /// Pg configs for ceramic
     pub ceramic_postgres: Option<CeramicPostgresSpec>,
-<<<<<<< HEAD
      /// Enable historical sync for ceramic nodes
      pub enable_historical_sync: Option<bool>,
-=======
-    /// Enable historical sync for ceramic nodes
-    pub enable_historical_sync: Option<bool>,
->>>>>>> 5b4b228d7b355e6b21aa929730d4d672bbb67960
 }
 
 /// Describes how the PG db for ceramic node should behave.
