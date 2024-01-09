@@ -693,11 +693,6 @@ pub fn stateful_set_spec(ns: &str, bundle: &CeramicBundle<'_>) -> StatefulSetSpe
             value: Some(bundle.config.enable_historical_sync.to_string()),
             ..Default::default()
         },
-        EnvVar {
-            name: "ENABLE_HISTORICAL_SYNC".to_owned(),
-            value: Some(bundle.config.enable_historical_sync.to_string()),
-            ..Default::default()
-        },
     ];
 
     let mut init_env = vec![EnvVar {
