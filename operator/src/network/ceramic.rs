@@ -29,7 +29,7 @@ use crate::network::{
 
 use crate::network::controller::{CERAMIC_SERVICE_API_PORT, CERAMIC_SERVICE_IPFS_PORT};
 
-use super::controller::{CERAMIC_POSTGRES_APP, CERAMIC_POSTGRES_SERVICE_NAME};
+use super::controller::{CERAMIC_POSTGRES_APP, CERAMIC_POSTGRES_SERVICE_NAME, DB_TYPE_SQLITE, DB_TYPE_POSTGRES};
 
 const IPFS_CONTAINER_NAME: &str = "ipfs";
 const IPFS_DATA_PV_CLAIM: &str = "ipfs-data";
@@ -89,7 +89,7 @@ r#"{
         "local-directory": "${CERAMIC_STATE_STORE_PATH}"
     },
     "indexing": {
-        "db": "postgres://${CERAMIC_PG_USERNAME}:${CERAMIC_PG_PASSWORD}@${CERAMIC_PG_HOST}:5432/${CERAMIC_PG_DBNAME}",
+        "db": "${DB_CONNECTION_STRING}",
         "allow-queries-before-historical-sync": true,
         "disable-composedb": false,
         "enable-historical-sync": ${ENABLE_HISTORICAL_SYNC}
@@ -136,6 +136,7 @@ pub struct CeramicConfig {
     pub image_pull_policy: String,
     pub ipfs: IpfsConfig,
     pub resource_limits: ResourceLimitsConfig,
+    pub db_type: String,
     pub postgres: CeramicPostgres,
     pub enable_historical_sync: bool,
 }
@@ -359,6 +360,7 @@ impl Default for CeramicConfig {
                 memory: Quantity("1Gi".to_owned()),
                 storage: Quantity("2Gi".to_owned()),
             },
+            db_type: DB_TYPE_SQLITE.to_owned(),
             postgres: CeramicPostgres {
                 db_name: None,
                 user_name: None,
@@ -394,6 +396,7 @@ impl From<CeramicSpec> for CeramicConfig {
                 value.resource_limits,
                 default.resource_limits,
             ),
+            db_type: value.db_type.unwrap_or(default.db_type),
             postgres: CeramicPostgres {
                 db_name: value.ceramic_postgres.clone().unwrap().db_name,
                 user_name: value.ceramic_postgres.clone().unwrap().user_name,
@@ -634,6 +637,11 @@ ipfs config --json Swarm.ResourceMgr.MaxFileDescriptors 500000
 }
 
 pub fn stateful_set_spec(ns: &str, bundle: &CeramicBundle<'_>) -> StatefulSetSpec {
+    let mut db_connection_string: String = "sqlite:///ceramic-data/ceramic.db".to_owned();
+    if bundle.config.db_type.eq(DB_TYPE_POSTGRES) {
+        db_connection_string = format!("postgres://${}:${}@${}:5432/${}", bundle.config.postgres.user_name.clone().unwrap(),bundle.config.postgres.password.clone().unwrap(),CERAMIC_POSTGRES_SERVICE_NAME.to_owned(), bundle.config.postgres.db_name.clone().unwrap())
+    }
+
     let mut ceramic_env = vec![
         EnvVar {
             name: "CERAMIC_NETWORK".to_owned(),
@@ -653,11 +661,6 @@ pub fn stateful_set_spec(ns: &str, bundle: &CeramicBundle<'_>) -> StatefulSetSpe
         EnvVar {
             name: "CAS_API_URL".to_owned(),
             value: Some(bundle.net_config.cas_api_url.to_owned()),
-            ..Default::default()
-        },
-        EnvVar {
-            name: "CERAMIC_SQLITE_PATH".to_owned(),
-            value: Some("/ceramic-data/ceramic.db".to_owned()),
             ..Default::default()
         },
         EnvVar {
@@ -681,23 +684,13 @@ pub fn stateful_set_spec(ns: &str, bundle: &CeramicBundle<'_>) -> StatefulSetSpe
             ..Default::default()
         },
         EnvVar {
-            name: "CERAMIC_PG_USERNAME".to_owned(),
-            value: Some(bundle.config.postgres.user_name.clone().unwrap()),
+            name: "DB_CONNECTION_STRING".to_owned(),
+            value: Some(db_connection_string),
             ..Default::default()
         },
         EnvVar {
-            name: "CERAMIC_PG_PASSWORD".to_owned(),
-            value: Some(bundle.config.postgres.password.clone().unwrap()),
-            ..Default::default()
-        },
-        EnvVar {
-            name: "CERAMIC_PG_HOST".to_owned(),
-            value: Some(CERAMIC_POSTGRES_SERVICE_NAME.to_owned()),
-            ..Default::default()
-        },
-        EnvVar {
-            name: "CERAMIC_PG_DBNAME".to_owned(),
-            value: Some(bundle.config.postgres.db_name.clone().unwrap()),
+            name: "ENABLE_HISTORICAL_SYNC".to_owned(),
+            value: Some(bundle.config.enable_historical_sync.to_string()),
             ..Default::default()
         },
         EnvVar {
@@ -829,8 +822,8 @@ pub fn stateful_set_spec(ns: &str, bundle: &CeramicBundle<'_>) -> StatefulSetSpe
                                 port: IntOrString::String("api".to_owned()),
                                 ..Default::default()
                             }),
-                            initial_delay_seconds: Some(60),
-                            period_seconds: Some(15),
+                            initial_delay_seconds: Some(20),
+                            period_seconds: Some(3),
                             timeout_seconds: Some(30),
                             ..Default::default()
                         }),

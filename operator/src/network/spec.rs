@@ -98,10 +98,17 @@ pub struct CeramicSpec {
     pub ipfs: Option<IpfsSpec>,
     /// Resource limits for ceramic nodes, applies to both requests and limits.
     pub resource_limits: Option<ResourceLimitsSpec>,
+    /// Composedb type for ceramic nodes, for example postgres or sqlite.
+    pub db_type: Option<String>,
     /// Pg configs for ceramic
     pub ceramic_postgres: Option<CeramicPostgresSpec>,
+<<<<<<< HEAD
      /// Enable historical sync for ceramic nodes
      pub enable_historical_sync: Option<bool>,
+=======
+    /// Enable historical sync for ceramic nodes
+    pub enable_historical_sync: Option<bool>,
+>>>>>>> 5b4b228d7b355e6b21aa929730d4d672bbb67960
 }
 
 /// Describes how the PG db for ceramic node should behave.
