@@ -92,7 +92,7 @@ r#"{
         "db": "postgres://${CERAMIC_PG_USERNAME}:${CERAMIC_PG_PASSWORD}@${CERAMIC_PG_HOST}:5432/${CERAMIC_PG_DBNAME}",
         "allow-queries-before-historical-sync": true,
         "disable-composedb": false,
-        "enable-historical-sync": true
+        "enable-historical-sync": ${ENABLE_HISTORICAL_SYNC}
     }
 }"#.to_owned()),
 ]));
@@ -137,6 +137,7 @@ pub struct CeramicConfig {
     pub ipfs: IpfsConfig,
     pub resource_limits: ResourceLimitsConfig,
     pub postgres: CeramicPostgres,
+    pub enable_historical_sync: bool,
 }
 
 pub struct CeramicPostgres {
@@ -322,9 +323,9 @@ impl Default for GoIpfsConfig {
             image: "ipfs/kubo:v0.19.1@sha256:c4527752a2130f55090be89ade8dde8f8a5328ec72570676b90f66e2cabf827d".to_owned(),
             image_pull_policy: "IfNotPresent".to_owned(),
             resource_limits: ResourceLimitsConfig {
-                cpu: Quantity("250m".to_owned()),
-                memory: Quantity("512Mi".to_owned()),
-                storage: Quantity("1Gi".to_owned()),
+                cpu: Quantity("1".to_owned()),
+                memory: Quantity("2Gi".to_owned()),
+                storage: Quantity("2Gi".to_owned()),
             },
             commands: vec![],
         }
@@ -354,15 +355,16 @@ impl Default for CeramicConfig {
             image_pull_policy: "Always".to_owned(),
             ipfs: IpfsConfig::default(),
             resource_limits: ResourceLimitsConfig {
-                cpu: Quantity("250m".to_owned()),
+                cpu: Quantity("1".to_owned()),
                 memory: Quantity("1Gi".to_owned()),
-                storage: Quantity("1Gi".to_owned()),
+                storage: Quantity("2Gi".to_owned()),
             },
             postgres: CeramicPostgres {
                 db_name: None,
                 user_name: None,
                 password: None,
             },
+            enable_historical_sync: true,
         }
     }
 }
@@ -397,6 +399,7 @@ impl From<CeramicSpec> for CeramicConfig {
                 user_name: value.ceramic_postgres.clone().unwrap().user_name,
                 password: value.ceramic_postgres.clone().unwrap().password,
             },
+            enable_historical_sync: value.enable_historical_sync.unwrap_or(default.enable_historical_sync),
         }
     }
 }
@@ -697,6 +700,11 @@ pub fn stateful_set_spec(ns: &str, bundle: &CeramicBundle<'_>) -> StatefulSetSpe
             value: Some(bundle.config.postgres.db_name.clone().unwrap()),
             ..Default::default()
         },
+        EnvVar {
+            name: "ENABLE_HISTORICAL_SYNC".to_owned(),
+            value: Some(bundle.config.enable_historical_sync.to_string()),
+            ..Default::default()
+        },
     ];
 
     let mut init_env = vec![EnvVar {
@@ -810,8 +818,8 @@ pub fn stateful_set_spec(ns: &str, bundle: &CeramicBundle<'_>) -> StatefulSetSpe
                                 port: IntOrString::String("api".to_owned()),
                                 ..Default::default()
                             }),
-                            initial_delay_seconds: Some(60),
-                            period_seconds: Some(15),
+                            initial_delay_seconds: Some(10),
+                            period_seconds: Some(1),
                             timeout_seconds: Some(30),
                             ..Default::default()
                         }),
@@ -899,7 +907,7 @@ pub fn stateful_set_spec(ns: &str, bundle: &CeramicBundle<'_>) -> StatefulSetSpe
                     resources: Some(ResourceRequirements {
                         requests: Some(BTreeMap::from_iter(vec![(
                             "storage".to_owned(),
-                            Quantity("2Gi".to_owned()),
+                            Quantity("10Gi".to_owned()),
                         )])),
                         ..Default::default()
                     }),
@@ -917,7 +925,7 @@ pub fn stateful_set_spec(ns: &str, bundle: &CeramicBundle<'_>) -> StatefulSetSpe
                     resources: Some(ResourceRequirements {
                         requests: Some(BTreeMap::from_iter(vec![(
                             "storage".to_owned(),
-                            Quantity("2Gi".to_owned()),
+                            Quantity("10Gi".to_owned()),
                         )])),
                         ..Default::default()
                     }),
@@ -976,7 +984,7 @@ pub fn postgres_stateful_set_spec(bundle: &CeramicBundle<'_>) -> StatefulSetSpec
                             (ResourceLimitsConfig {
                                 cpu: Quantity("1".to_owned()),
                                 memory: Quantity("1Gi".to_owned()),
-                                storage: Quantity("1Gi".to_owned()),
+                                storage: Quantity("2Gi".to_owned()),
                             })
                             .into(),
                         ),
@@ -984,7 +992,7 @@ pub fn postgres_stateful_set_spec(bundle: &CeramicBundle<'_>) -> StatefulSetSpec
                             (ResourceLimitsConfig {
                                 cpu: Quantity("1".to_owned()),
                                 memory: Quantity("512Mi".to_owned()),
-                                storage: Quantity("1Gi".to_owned()),
+                                storage: Quantity("2Gi".to_owned()),
                             })
                             .into(),
                         ),
@@ -1025,7 +1033,7 @@ pub fn postgres_stateful_set_spec(bundle: &CeramicBundle<'_>) -> StatefulSetSpec
                 resources: Some(ResourceRequirements {
                     requests: Some(BTreeMap::from_iter(vec![(
                         "storage".to_owned(),
-                        Quantity("2Gi".to_owned()),
+                        Quantity("10Gi".to_owned()),
                     )])),
                     ..Default::default()
                 }),
