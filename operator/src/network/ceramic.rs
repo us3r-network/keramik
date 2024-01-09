@@ -29,7 +29,7 @@ use crate::network::{
 
 use crate::network::controller::{CERAMIC_SERVICE_API_PORT, CERAMIC_SERVICE_IPFS_PORT};
 
-use super::controller::{CERAMIC_POSTGRES_APP, CERAMIC_POSTGRES_SERVICE_NAME, DB_TYPE_SQLITE, DB_TYPE_POSTGRES};
+use super::controller::{CERAMIC_POSTGRES_APP, CERAMIC_POSTGRES_SERVICE_NAME, DB_TYPE_POSTGRES};
 
 const IPFS_CONTAINER_NAME: &str = "ipfs";
 const IPFS_DATA_PV_CLAIM: &str = "ipfs-data";
@@ -360,7 +360,7 @@ impl Default for CeramicConfig {
                 memory: Quantity("1Gi".to_owned()),
                 storage: Quantity("2Gi".to_owned()),
             },
-            db_type: DB_TYPE_SQLITE.to_owned(),
+            db_type: DB_TYPE_POSTGRES.to_owned(),
             postgres: CeramicPostgres {
                 db_name: None,
                 user_name: None,
@@ -639,7 +639,7 @@ ipfs config --json Swarm.ResourceMgr.MaxFileDescriptors 500000
 pub fn stateful_set_spec(ns: &str, bundle: &CeramicBundle<'_>) -> StatefulSetSpec {
     let mut db_connection_string: String = "sqlite:///ceramic-data/ceramic.db".to_owned();
     if bundle.config.db_type.eq(DB_TYPE_POSTGRES) {
-        db_connection_string = format!("postgres://${}:${}@${}:5432/${}", bundle.config.postgres.user_name.clone().unwrap(),bundle.config.postgres.password.clone().unwrap(),CERAMIC_POSTGRES_SERVICE_NAME.to_owned(), bundle.config.postgres.db_name.clone().unwrap())
+        db_connection_string = format!("postgres://{}:{}@{}:5432/{}", bundle.config.postgres.user_name.clone().unwrap(),bundle.config.postgres.password.clone().unwrap(),CERAMIC_POSTGRES_SERVICE_NAME.to_owned(), bundle.config.postgres.db_name.clone().unwrap())
     }
 
     let mut ceramic_env = vec![

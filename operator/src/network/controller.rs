@@ -84,7 +84,6 @@ pub const CERAMIC_POSTGRES_APP: &str = "ceramic-postgres";
 
 pub const BOOTSTRAP_JOB_NAME: &str = "bootstrap";
 
-pub const DB_TYPE_SQLITE: &str = "sqlite";
 pub const DB_TYPE_POSTGRES: &str = "postgres";
 
 
